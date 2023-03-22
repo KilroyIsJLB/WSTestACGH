@@ -30,6 +30,7 @@ jobs:
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: output
-          path: WSTestACGH/output/**
+          # artifact est déjà le nom par défaut
+          name: artifact
+          path: output/**
           if-no-files-found: error

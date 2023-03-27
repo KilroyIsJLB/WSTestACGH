@@ -80,3 +80,4 @@ jobs:
           context: .
           file: ./DockerfileForGithub
           push: true
+          tags: ${{ github.actor }}/${{ github.repository }}/latest

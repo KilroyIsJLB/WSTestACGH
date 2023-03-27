@@ -1,0 +1,24 @@
+# https://hub.docker.com/_/microsoft-dotnet
+FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+WORKDIR /source
+
+# copy csproj and restore as distinct layers
+COPY *.sln .
+COPY WSTestACGH/WSTestACGH.csproj ./WSTestACGH/
+RUN dotnet restore
+
+# copy everything else and build app
+COPY WSTestACGH/. ./WSTestACGH/
+WORKDIR /source/WSTestACGH
+# Error restore
+#   Supprimer les dossiers bin et obj -> voir .dockerignore
+RUN dotnet publish -c release -o /app --no-restore
+
+# final stage/image
+FROM mcr.microsoft.com/dotnet/aspnet:6.0
+WORKDIR /app
+COPY --from=build /app ./
+# Copie des clés
+COPY keys/public_cert.crt ./keys/public_cert.crt
+
+ENTRYPOINT ["dotnet", "WSTestACGH.dll"]

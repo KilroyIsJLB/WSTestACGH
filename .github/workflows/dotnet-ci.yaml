@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ main ]
 
+# Publication vers github registry
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -16,6 +21,14 @@ jobs:
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 6.0.x
+      # Ajout du cache pour les dépendences
+      - uses: actions/cache@v3
+        with:
+          path: ~/.nuget/packages
+          # Look to see if there is a cache hit for the corresponding requirements file
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget
       - name: Restore dependencies
         run: dotnet restore
         
@@ -34,3 +47,36 @@ jobs:
           name: artifact
           path: output/**
           if-no-files-found: error
+
+
+  build-and-push-image:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@2.1.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download a Build Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: artifact
+          path: output
+
+      - name: Build and push Docker images
+        #uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+        uses: docker/build-push-action@v4.0.0
+        with:
+          context: .
+          file: ./DockerfileForGithub
+          push: true
